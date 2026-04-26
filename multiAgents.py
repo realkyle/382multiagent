@@ -73,8 +73,26 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        score = successorGameState.getScore()
+
+        # Reward proximity to nearest food via reciprocal distance
+        foodList = newFood.asList()
+        if foodList:
+            nearestFoodDist = min(manhattanDistance(newPos, food) for food in foodList)
+            score += 10.0 / nearestFoodDist
+
+        # Penalize active ghosts nearby; reward proximity to scared ghosts
+        for ghostState, scaredTime in zip(newGhostStates, newScaredTimes):
+            dist = manhattanDistance(newPos, ghostState.getPosition())
+            if scaredTime > 0:
+                score += 100.0 / (dist + 1)
+            else:
+                if dist <= 1:
+                    score -= 500
+                elif dist <= 3:
+                    score -= 100.0 / dist
+
+        return score
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -134,8 +152,25 @@ class MinimaxAgent(MultiAgentSearchAgent):
         gameState.isLose():
         Returns whether or not the game state is a losing state
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def minimax(state, agentIndex, depth):
+            # Terminal check: win/lose or reached target depth (before Pacman's next move)
+            if state.isWin() or state.isLose() or depth == self.depth:
+                return self.evaluationFunction(state)
+
+            numAgents = state.getNumAgents()
+            nextAgent = (agentIndex + 1) % numAgents
+            # Depth increments when we cycle back to Pacman
+            nextDepth = depth + (1 if nextAgent == 0 else 0)
+
+            values = [minimax(state.generateSuccessor(agentIndex, a), nextAgent, nextDepth)
+                      for a in state.getLegalActions(agentIndex)]
+
+            return max(values) if agentIndex == 0 else min(values)
+
+        # Pick the Pacman action with the highest minimax value
+        legalActions = gameState.getLegalActions(0)
+        return max(legalActions, key=lambda a: minimax(
+            gameState.generateSuccessor(0, a), 1, 0))
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -146,8 +181,40 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def alphabeta(state, agentIndex, depth, alpha, beta):
+            if state.isWin() or state.isLose() or depth == self.depth:
+                return self.evaluationFunction(state)
+
+            numAgents = state.getNumAgents()
+            nextAgent = (agentIndex + 1) % numAgents
+            nextDepth = depth + (1 if nextAgent == 0 else 0)
+
+            if agentIndex == 0:  # Pacman - maximize
+                v = float('-inf')
+                for action in state.getLegalActions(0):
+                    v = max(v, alphabeta(state.generateSuccessor(0, action), nextAgent, nextDepth, alpha, beta))
+                    if v > beta:
+                        return v
+                    alpha = max(alpha, v)
+                return v
+            else:  # Ghost - minimize
+                v = float('inf')
+                for action in state.getLegalActions(agentIndex):
+                    v = min(v, alphabeta(state.generateSuccessor(agentIndex, action), nextAgent, nextDepth, alpha, beta))
+                    if v < alpha:
+                        return v
+                    beta = min(beta, v)
+                return v
+
+        # Root: pick the Pacman action with the highest alpha-beta value
+        alpha = float('-inf')
+        bestAction = None
+        for action in gameState.getLegalActions(0):
+            val = alphabeta(gameState.generateSuccessor(0, action), 1, 0, alpha, float('inf'))
+            if val > alpha:
+                alpha = val
+                bestAction = action
+        return bestAction
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
