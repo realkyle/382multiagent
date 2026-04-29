@@ -153,13 +153,13 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         def minimax(state, agentIndex, depth):
-            # Terminal check: win/lose or reached target depth (before Pacman's next move)
+            # Terminal check: win/lose or reached target depth (aka before Pacman next move)
             if state.isWin() or state.isLose() or depth == self.depth:
                 return self.evaluationFunction(state)
 
             numAgents = state.getNumAgents()
             nextAgent = (agentIndex + 1) % numAgents
-            # Depth increments when we cycle back to Pacman
+            # Depth increments when cycle back to Pacman
             nextDepth = depth + (1 if nextAgent == 0 else 0)
 
             values = [minimax(state.generateSuccessor(agentIndex, a), nextAgent, nextDepth)
@@ -167,7 +167,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
             return max(values) if agentIndex == 0 else min(values)
 
-        # Pick the Pacman action with the highest minimax value
+        # Pick Pacman action with highest minimax value
         legalActions = gameState.getLegalActions(0)
         return max(legalActions, key=lambda a: minimax(
             gameState.generateSuccessor(0, a), 1, 0))
@@ -189,7 +189,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             nextAgent = (agentIndex + 1) % numAgents
             nextDepth = depth + (1 if nextAgent == 0 else 0)
 
-            if agentIndex == 0:  # Pacman - maximize
+            if agentIndex == 0:  # Pacman: maximize
                 v = float('-inf')
                 for action in state.getLegalActions(0):
                     v = max(v, alphabeta(state.generateSuccessor(0, action), nextAgent, nextDepth, alpha, beta))
@@ -197,7 +197,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                         return v
                     alpha = max(alpha, v)
                 return v
-            else:  # Ghost - minimize
+            else:  # Ghost: minimize
                 v = float('inf')
                 for action in state.getLegalActions(agentIndex):
                     v = min(v, alphabeta(state.generateSuccessor(agentIndex, action), nextAgent, nextDepth, alpha, beta))
@@ -206,7 +206,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                     beta = min(beta, v)
                 return v
 
-        # Root: pick the Pacman action with the highest alpha-beta value
+        # Root: pick Pacman action with highest alpha-beta value
         alpha = float('-inf')
         bestAction = None
         for action in gameState.getLegalActions(0):
